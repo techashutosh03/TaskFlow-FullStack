@@ -15,7 +15,7 @@ app.use(express.json());
 // ==========================================
 // DATABASE CONNECTION
 // ==========================================
-mongoose.connect('mongodb://127.0.0.1:27017/todoDB')
+mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ Connected to MongoDB'))
     .catch(err => console.error('❌ MongoDB connection error:', err));
 
@@ -402,7 +402,7 @@ app.get('/', (req, res) => {
 // ==========================================
 // START SERVER
 // ==========================================
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
     console.log(`📌 Auth Endpoints:`);
