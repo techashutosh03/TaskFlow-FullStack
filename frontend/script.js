@@ -433,7 +433,7 @@ async function toggleTask(id) {
     const newStatus = task.status === 'Completed' ? 'Pending' : 'Completed';
 
     try {
-        const response = await fetch(`${API_URL}/${id}`, {
+        const response = await fetch(`${API_URL}/api/tasks/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus })
@@ -497,7 +497,7 @@ async function confirmDeleteTask() {
     if (!taskToDelete) return;
     
     try {
-        const response = await fetch(`${API_URL}/${taskToDelete}`, {
+        const response = await fetch(`${API_URL}/api/tasks/${taskToDelete}`, {
             method: 'DELETE'
         });
 
@@ -711,7 +711,7 @@ async function applyTemplate(templateName) {
     let added = 0;
     for (const taskTitle of template.tasks) {
         try {
-            const response = await fetch(API_URL, {
+            const response = await fetch(`${API_URL}/api/tasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -1024,7 +1024,7 @@ taskForm.addEventListener("submit", async function (event) {
             showNotification('✅ Task updated successfully!');
             resetForm();
         } else {
-            const response = await fetch(API_URL, {
+            const response = await fetch(`${API_URL}/api/tasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
