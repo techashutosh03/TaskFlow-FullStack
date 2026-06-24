@@ -1,7 +1,7 @@
 // ==========================================
 // API CONFIGURATION
 // ==========================================
-const API_URL = 'http://localhost:3000/api/tasks';
+const API_URL = 'https://taskflow-fullstack-1-3f1f.onrender.com';
 
 // ==========================================
 // STATE
