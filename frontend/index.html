@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TodoList Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+  <main class="app">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar glass">
+      <div class="logo">
+        <span class="logo-box"><i data-lucide="check"></i></span>
+        <h1>Todo<span>List</span></h1>
+      </div>
+
+      <button class="add-new" id="focusInput">
+        <i data-lucide="plus"></i>
+        Add New Task
+      </button>
+
+      <!-- Gamification - Level & Coins -->
+      <div class="gamification-stats glass" style="padding: 16px; border-radius: 14px; text-align: center; margin: 10px 0;">
+        <div style="display: flex; justify-content: space-around;">
+          <div>
+            <span style="color: var(--gold); font-size: 24px;">🏆</span>
+            <p style="font-size: 12px; color: var(--muted);">Level</p>
+            <h3 id="userLevel" style="font-size: 28px; color: var(--gold);">1</h3>
+          </div>
+          <div>
+            <span style="color: var(--gold); font-size: 24px;">⭐</span>
+            <p style="font-size: 12px; color: var(--muted);">XP</p>
+            <h3 id="userXP" style="font-size: 28px; color: var(--gold);">0</h3>
+          </div>
+          <div>
+            <span style="color: var(--gold); font-size: 24px;">🪙</span>
+            <p style="font-size: 12px; color: var(--muted);">Coins</p>
+            <h3 id="userCoins" style="font-size: 28px; color: var(--gold);">0</h3>
+          </div>
+        </div>
+        <div style="margin-top: 10px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden;">
+          <div id="xpProgress" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), #d4a017); border-radius: 999px;"></div>
+        </div>
+        <p style="font-size: 11px; color: var(--muted); margin-top: 5px;">Next level: <span id="nextLevelXP">100</span> XP</p>
+      </div>
+
+      <nav class="menu">
+        <button class="menu-item active" data-filter="all">
+          <i data-lucide="archive"></i><span>All Tasks</span><b id="allCount">0</b>
+        </button>
+        <button class="menu-item" data-filter="pending">
+          <i data-lucide="clock-3"></i><span>Pending</span><b id="pendingCount">0</b>
+        </button>
+        <button class="menu-item" data-filter="completed">
+          <i data-lucide="circle-check"></i><span>Completed</span><b id="completedCount">0</b>
+        </button>
+      </nav>
+
+      <div class="categories">
+        <h2>Categories</h2>
+        <p><i data-lucide="briefcase-business"></i> Work <b id="workCount">0</b></p>
+        <p><i data-lucide="user"></i> Personal <b id="personalCount">0</b></p>
+        <p><i data-lucide="book-open"></i> Study <b id="studyCount">0</b></p>
+        <p><i data-lucide="shopping-cart"></i> Shopping <b id="shoppingCount">0</b></p>
+      </div>
+
+      <div class="theme">
+        <i data-lucide="sun"></i>
+        <button id="themeToggle"><i data-lucide="moon"></i></button>
+        <span>Dark Mode</span>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <section class="main glass">
+      <header class="topbar">
+        <div>
+          <h1>Hello, User!</h1>
+          <p>Here's what's on your plate today.</p>
+        </div>
+
+        <div class="actions">
+          <label class="search glass-input">
+            <i data-lucide="search"></i>
+            <input type="search" id="searchInput" placeholder="Search tasks..." />
+          </label>
+          <button class="icon-btn glass-btn"><i data-lucide="bell"></i></button>
+          <button class="profile"><i data-lucide="user"></i></button>
+        </div>
+      </header>
+
+      <!-- ===== STATS ===== -->
+      <section class="stats">
+        <article class="glass-card">
+          <span><i data-lucide="list-checks"></i></span>
+          <div><h3 id="totalStat">0</h3><p>Total Tasks</p><small></small></div>
+        </article>
+        <article class="glass-card">
+          <span><i data-lucide="clock-3"></i></span>
+          <div><h3 id="pendingStat">0</h3><p>Pending Tasks</p><small></small></div>
+        </article>
+        <article class="glass-card">
+          <span><i data-lucide="circle-check"></i></span>
+          <div><h3 id="completedStat">0</h3><p>Completed Tasks</p><small></small></div>
+        </article>
+        <article class="glass-card gold-card">
+          <span><i data-lucide="star"></i></span>
+          <div><h3 id="importantStat">0</h3><p>Important Tasks</p><small></small></div>
+        </article>
+      </section>
+
+      <!-- ===== TASK FORM ===== -->
+      <form class="task-form glass-form" id="taskForm">
+        <div style="display: flex; gap: 12px; flex: 1;">
+          <input type="text" id="taskInput" placeholder="What do you want to add?" required />
+          <button type="button" class="mic-btn" id="micBtn" title="Voice input (Ctrl+Shift+V)">
+            <i data-lucide="mic"></i>
+          </button>
+        </div>
+        <select id="categorySelect" class="glass-select">
+          <option value="Work">Work</option>
+          <option value="Personal">Personal</option>
+          <option value="Study">Study</option>
+          <option value="Shopping">Shopping</option>
+        </select>
+        <select id="prioritySelect" class="glass-select">
+          <option value="Low">Low</option>
+          <option value="Medium" selected>Medium</option>
+          <option value="High">High</option>
+        </select>
+        <button type="submit" class="submit-btn">Add Task</button>
+      </form>
+
+      <!-- ===== FOCUS MODE ===== -->
+      <div style="display: flex; gap: 12px; align-items: center; margin-top: 20px; flex-wrap: wrap;">
+        <button class="focus-btn" id="focusToggle">
+          <i data-lucide="eye"></i>
+          <span id="focusLabel">🎯 Focus Mode</span>
+        </button>
+        <div id="pomodoroDisplay" style="display: none; color: var(--gold); font-weight: 600;">
+          ⏱️ <span id="pomodoroTime">25:00</span>
+          <button class="pomodoro-btn" id="pomodoroStart">▶️</button>
+          <button class="pomodoro-btn" id="pomodoroReset">⏹️</button>
+        </div>
+      </div>
+
+      <!-- ===== TASKS SECTION ===== -->
+      <section class="tasks">
+        <div class="task-head">
+          <h2>Your Tasks</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <select id="groupSelect" class="glass-select" style="padding: 8px 12px; font-size: 13px;">
+              <option value="none">📂 Group: None</option>
+              <option value="category">📂 Group by Category</option>
+              <option value="priority">🎯 Group by Priority</option>
+              <option value="status">📊 Group by Status</option>
+            </select>
+            <button class="tab glass-tab active" data-filter="all">All</button>
+            <button class="tab glass-tab" data-filter="pending">Pending</button>
+            <button class="tab glass-tab" data-filter="completed">Completed</button>
+          </div>
+        </div>
+
+        <div id="taskList"></div>
+      </section>
+
+      <!-- ===== DEPENDENCIES ===== -->
+      <section class="dependencies-section glass" style="margin-top: 30px; padding: 24px;">
+        <h3 style="color: var(--gold); margin-bottom: 15px;">🔗 Task Dependencies</h3>
+        <div id="dependencyList">
+          <p style="color: var(--muted);">No dependencies set. Click 🔗 on a task to manage dependencies.</p>
+        </div>
+      </section>
+
+      <!-- ===== TEMPLATES ===== -->
+      <section class="templates-section glass" style="margin-top: 20px; padding: 24px;">
+        <h3 style="color: var(--gold); margin-bottom: 15px;">🧩 Smart Templates</h3>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px;">
+          <button class="template-btn" onclick="applyTemplate('weekly')">📊 Weekly Report</button>
+          <button class="template-btn" onclick="applyTemplate('project')">📁 Project Plan</button>
+          <button class="template-btn" onclick="applyTemplate('study')">📚 Study Session</button>
+          <button class="template-btn" onclick="applyTemplate('event')">🎉 Event Planning</button>
+          <button class="template-btn" onclick="openTemplateModal()">➕ Create Template</button>
+        </div>
+        <div id="templateList">
+          <p style="color: var(--muted);">Select a template above to auto-create tasks!</p>
+        </div>
+      </section>
+
+      <!-- ===== ANALYTICS ===== -->
+      <section class="analytics-section glass" style="margin-top: 20px; padding: 24px;">
+        <h3 style="color: var(--gold); margin-bottom: 20px;">📊 Productivity Analytics</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+          <div class="analytics-card">
+            <p style="color: var(--muted); font-size: 13px;">Completion Rate</p>
+            <h3 id="completionRate" style="font-size: 28px; background: linear-gradient(135deg, #2ecc71, #27ae60); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0%</h3>
+          </div>
+          <div class="analytics-card">
+            <p style="color: var(--muted); font-size: 13px;">Total Tasks</p>
+            <h3 id="analyticsTotal" style="font-size: 28px; background: linear-gradient(135deg, #3498db, #2980b9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0</h3>
+          </div>
+          <div class="analytics-card">
+            <p style="color: var(--muted); font-size: 13px;">Best Day</p>
+            <h3 id="bestDay" style="font-size: 28px; background: linear-gradient(135deg, #f39c12, #e67e22); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">-</h3>
+          </div>
+          <div class="analytics-card">
+            <p style="color: var(--muted); font-size: 13px;">Top Category</p>
+            <h3 id="topCategory" style="font-size: 28px; background: linear-gradient(135deg, #9b59b6, #8e44ad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">-</h3>
+          </div>
+        </div>
+        <div style="background: var(--glass-bg); border-radius: 12px; padding: 15px; margin-top: 10px;">
+          <p style="color: var(--muted); text-align: center; margin-bottom: 12px;">📊 Category Distribution</p>
+          <div id="categoryVisual" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!-- ===== MODALS ===== -->
+  <!-- Delete Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal glass-modal">
+      <div class="modal-header">
+        <span class="modal-icon">⚠️</span>
+        <h2>Delete Task</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete</p>
+        <p class="modal-task-title" id="deleteTaskTitle">"Complete project proposal"?</p>
+        <p class="modal-warning">This action cannot be undone!</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" id="cancelDeleteBtn">Cancel</button>
+        <button class="modal-btn modal-btn-delete" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dependency Modal -->
+  <div class="modal-overlay" id="dependencyModal">
+    <div class="modal glass-modal" style="max-width: 450px;">
+      <div class="modal-header">
+        <span class="modal-icon">🔗</span>
+        <h2>Manage Dependency</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--muted); margin-bottom: 10px;">This task depends on:</p>
+        <p class="modal-task-title" id="depTaskName" style="font-size: 16px !important;">"Task Name"</p>
+        <select id="depSelect" class="glass-select" style="width: 100%; margin: 15px 0; padding: 12px;">
+          <option value="">Select a task this depends on...</option>
+        </select>
+        <div id="currentDeps" style="margin-top: 10px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" id="closeDepModal">Cancel</button>
+        <button class="modal-btn modal-btn-delete" id="addDepBtn">Add Dependency</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Modal -->
+  <div class="modal-overlay" id="templateModal">
+    <div class="modal glass-modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <span class="modal-icon">🧩</span>
+        <h2>Create Template</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--muted); margin-bottom: 15px;">Create a reusable task template.</p>
+        <input type="text" id="templateName" placeholder="Template name..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: white; margin-bottom: 10px;" />
+        <textarea id="templateTasks" placeholder="Enter tasks (one per line)&#10;Example:&#10;- Research topic&#10;- Create outline&#10;- Write draft" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: white; min-height: 120px; font-family: inherit; resize: vertical;"></textarea>
+        <select id="templateCategory" class="glass-select" style="width: 100%; margin: 10px 0;">
+          <option value="Work">Work</option>
+          <option value="Personal">Personal</option>
+          <option value="Study">Study</option>
+          <option value="Shopping">Shopping</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" id="closeTemplateModal">Cancel</button>
+        <button class="modal-btn modal-btn-delete" id="saveTemplateBtn">Save Template</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="script.js"></script>
+  
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('✅ Service Worker registered'))
+        .catch(err => console.error('❌ SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>
