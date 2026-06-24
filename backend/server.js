@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // ==========================================
-// DATABASE CONNECTION
+// DATABASE CONNECTION - FIXED for Render
 // ==========================================
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ Connected to MongoDB'))
@@ -23,7 +23,7 @@ mongoose.connect(process.env.MONGODB_URI)
 // JWT SECRET
 // ==========================================
 const JWT_SECRET = 'your-super-secret-jwt-key-change-this-in-production';
-const JWT_EXPIRY = '7d'; // Token expires in 7 days
+const JWT_EXPIRY = '7d';
 
 // ==========================================
 // USER SCHEMA
@@ -63,14 +63,9 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // ==========================================
-// TASK SCHEMA (Updated with userId)
+// TASK SCHEMA (Without userId)
 // ==========================================
 const taskSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
     title: {
         type: String,
         required: true,
@@ -100,11 +95,10 @@ const taskSchema = new mongoose.Schema({
 const Task = mongoose.model('Task', taskSchema);
 
 // ==========================================
-// JWT VERIFICATION MIDDLEWARE
+// JWT VERIFICATION MIDDLEWARE (For auth only)
 // ==========================================
 const verifyToken = async (req, res, next) => {
     try {
-        // Get token from header
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({ 
@@ -113,8 +107,6 @@ const verifyToken = async (req, res, next) => {
         }
 
         const token = authHeader.split(' ')[1];
-        
-        // Verify token
         const decoded = jwt.verify(token, JWT_SECRET);
         req.userId = decoded.userId;
         req.user = decoded;
@@ -138,12 +130,10 @@ const verifyToken = async (req, res, next) => {
 // AUTH ROUTES
 // ==========================================
 
-// ===== REGISTER =====
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
         
-        // Validate input
         if (!name || !email || !password) {
             return res.status(400).json({ 
                 message: 'Please provide name, email, and password' 
@@ -156,7 +146,6 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Check if user already exists
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
             return res.status(400).json({ 
@@ -164,11 +153,9 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        // Create user
         const user = new User({
             name,
             email: email.toLowerCase(),
@@ -177,7 +164,6 @@ app.post('/api/auth/register', async (req, res) => {
         
         await user.save();
         
-        // Create JWT token
         const token = jwt.sign(
             { userId: user._id, email: user.email, name: user.name },
             JWT_SECRET,
@@ -199,19 +185,16 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// ===== LOGIN =====
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        // Validate input
         if (!email || !password) {
             return res.status(400).json({ 
                 message: 'Please provide email and password' 
             });
         }
         
-        // Find user
         const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(401).json({ 
@@ -219,7 +202,6 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
         
-        // Check password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({ 
@@ -227,11 +209,9 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
         
-        // Update last login
         user.lastLogin = new Date();
         await user.save();
         
-        // Create JWT token
         const token = jwt.sign(
             { userId: user._id, email: user.email, name: user.name },
             JWT_SECRET,
@@ -254,7 +234,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// ===== GET CURRENT USER =====
 app.get('/api/auth/me', verifyToken, async (req, res) => {
     try {
         const user = await User.findById(req.userId).select('-password');
@@ -268,34 +247,26 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
     }
 });
 
-// ===== LOGOUT (Frontend handles this) =====
 app.post('/api/auth/logout', verifyToken, (req, res) => {
-    // JWT is stateless, so we just respond with success
-    // Frontend will remove the token
     res.json({ message: 'Logged out successfully' });
 });
 
 // ==========================================
-// PROTECTED TASK ROUTES
+// TASK ROUTES (Public - No verifyToken)
 // ==========================================
 
-// ===== GET all tasks for current user =====
-app.get('/api/tasks', verifyToken, async (req, res) => {
+app.get('/api/tasks', async (req, res) => {
     try {
-        const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1 });
+        const tasks = await Task.find().sort({ createdAt: -1 });
         res.json(tasks);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
-// ===== GET single task =====
-app.get('/api/tasks/:id', verifyToken, async (req, res) => {
+app.get('/api/tasks/:id', async (req, res) => {
     try {
-        const task = await Task.findOne({ 
-            _id: req.params.id, 
-            userId: req.userId 
-        });
+        const task = await Task.findById(req.params.id);
         
         if (!task) {
             return res.status(404).json({ message: 'Task not found' });
@@ -306,8 +277,7 @@ app.get('/api/tasks/:id', verifyToken, async (req, res) => {
     }
 });
 
-// ===== CREATE a new task =====
-app.post('/api/tasks', verifyToken, async (req, res) => {
+app.post('/api/tasks', async (req, res) => {
     try {
         const { title, category, priority, status } = req.body;
         
@@ -316,7 +286,6 @@ app.post('/api/tasks', verifyToken, async (req, res) => {
         }
 
         const task = new Task({
-            userId: req.userId,
             title,
             category: category || 'Work',
             priority: priority || 'Medium',
@@ -330,15 +299,11 @@ app.post('/api/tasks', verifyToken, async (req, res) => {
     }
 });
 
-// ===== UPDATE a task =====
-app.put('/api/tasks/:id', verifyToken, async (req, res) => {
+app.put('/api/tasks/:id', async (req, res) => {
     try {
         const { title, category, priority, status } = req.body;
         
-        const task = await Task.findOne({ 
-            _id: req.params.id, 
-            userId: req.userId 
-        });
+        const task = await Task.findById(req.params.id);
         
         if (!task) {
             return res.status(404).json({ message: 'Task not found' });
@@ -356,13 +321,9 @@ app.put('/api/tasks/:id', verifyToken, async (req, res) => {
     }
 });
 
-// ===== DELETE a task =====
-app.delete('/api/tasks/:id', verifyToken, async (req, res) => {
+app.delete('/api/tasks/:id', async (req, res) => {
     try {
-        const task = await Task.findOne({ 
-            _id: req.params.id, 
-            userId: req.userId 
-        });
+        const task = await Task.findById(req.params.id);
         
         if (!task) {
             return res.status(404).json({ message: 'Task not found' });
@@ -380,7 +341,7 @@ app.delete('/api/tasks/:id', verifyToken, async (req, res) => {
 // ==========================================
 app.get('/', (req, res) => {
     res.send(`
-        🚀 Todo API with JWT Authentication is running!
+        🚀 Todo API is running!
         
         📌 Auth Endpoints:
         POST   /api/auth/register  - Register a new user
@@ -388,29 +349,27 @@ app.get('/', (req, res) => {
         GET    /api/auth/me        - Get current user (Protected)
         POST   /api/auth/logout    - Logout user (Protected)
         
-        📌 Task Endpoints (All Protected - Requires Token):
+        📌 Task Endpoints (Public - No Authentication Required):
         GET    /api/tasks          - Get all tasks
         GET    /api/tasks/:id      - Get single task
         POST   /api/tasks          - Create a task
         PUT    /api/tasks/:id      - Update a task
         DELETE /api/tasks/:id      - Delete a task
-        
-        🔐 Authentication: Bearer <token> in Authorization header
     `);
 });
 
 // ==========================================
-// START SERVER
+// START SERVER - FIXED for Render
 // ==========================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
+    console.log(`✅ Server running on port ${PORT}`);
     console.log(`📌 Auth Endpoints:`);
     console.log(`   POST   /api/auth/register  - Register`);
     console.log(`   POST   /api/auth/login     - Login`);
     console.log(`   GET    /api/auth/me        - Get user (Protected)`);
     console.log(`   POST   /api/auth/logout    - Logout (Protected)`);
-    console.log(`📌 Task Endpoints (All Protected):`);
+    console.log(`📌 Task Endpoints (Public):`);
     console.log(`   GET    /api/tasks          - Get all tasks`);
     console.log(`   GET    /api/tasks/:id      - Get single task`);
     console.log(`   POST   /api/tasks          - Create a task`);
